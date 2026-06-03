@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Helpora - AI Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #0f172a;       
+            --primary-light: #1e293b; 
+            --accent: #2563eb;        
+            --accent-hover: #1d4ed8;  
+            --bg-body: #f1f5f9;       
+            --bg-surface: #ffffff;
+            --border: #e2e8f0;        
+            --text-main: #334155;     
+            --text-muted: #64748b;    
+            --chat-bot: #f8fafc;      
+        }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* MAIN CONTAINER */
+        .chat-container {
+            width: 100%;
+            max-width: 1280px;
+            height: 92vh;
+            margin: auto;
+            background: var(--bg-surface);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            display: flex;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        /* LEFT PANEL (History)  */
+        .history-panel {
+            width: 280px; 
+            min-width: 280px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+        }
+
+        .history-panel.collapsed { width: 0; min-width: 0; border-right: none; overflow: hidden; }
+
+        .history-header {
+            padding: 20px 16px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .history-header span {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-new-chat {
+            width: calc(100% - 32px);
+            margin: 16px auto;
+            padding: 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-new-chat:hover { background: var(--bg-body); border-color: #cbd5e1; }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .history-list::-webkit-scrollbar { width: 4px; }
+        .history-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .history-section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 12px 12px 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        /* HISTORY ITEM & ACTIONS */
+        .history-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: background 0.2s;
+            color: var(--text-muted);
+        }
+        .history-item:hover { background: var(--bg-body); color: var(--text-main); }
+        .history-item.active { background: #eff6ff; color: var(--accent); font-weight: 500; }
+
+        .history-item-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .history-item-title { 
+            flex: 1; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .history-item:hover .history-actions { opacity: 1; }
+        
+        @media (hover: none) {
+            .history-actions { opacity: 1; }
+        }
+
+        .btn-action {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-action:hover { color: var(--primary); background: #e2e8f0; }
+        .btn-action.delete:hover { color: #ef4444; background: #fee2e2; }
+
+        /* RIGHT SIDE  */
+        .right-side { flex: 1; display: flex; overflow: hidden; background: var(--bg-surface); }
+
+        /* SIDEBAR (Model Configuration)*/
+        .sidebar {
+            width: 240px; min-width: 240px;
+            background: var(--primary); color: #f8fafc;
+            padding: 24px 20px; display: flex; flex-direction: column;
+            border-left: 1px solid var(--primary-light);
+        }
+        .sidebar-header { margin-bottom: 24px; }
+        .sidebar-header h4 { font-size: 1rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .config-group { margin-bottom: 20px; }
+        .config-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: block; font-weight: 600;}
+        #model-select {
+            background: var(--primary-light); border: 1px solid #334155;
+            color: white; font-size: 0.85rem; padding: 8px 12px;
+            border-radius: 6px; width: 100%; cursor: pointer; outline: none;
+        }
+        #model-select:focus { border-color: var(--accent); }
+        .stats-card { background: var(--primary-light); border-radius: 6px; padding: 12px 16px; border: 1px solid #334155; margin-top: auto; }
+        .stats-card h6 { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; font-weight: 500;}
+        .stats-card .value { font-size: 1.25rem; font-weight: 600; color: white;}
+
+        /* CHAT AREA */
+        .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-surface); }
+        .chat-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; background: var(--bg-surface); }
+        .chat-header h5 { margin: 0; font-weight: 600; font-size: 1rem; color: var(--primary); }
+        .btn-toggle-history {
+            background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted);
+            width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .btn-toggle-history:hover { background: var(--bg-body); color: var(--primary); }
+
+        #chat-box { flex: 1; padding: 24px 32px; overflow-y: auto; scroll-behavior: smooth; }
+        #chat-box::-webkit-scrollbar { width: 6px; }
+        #chat-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+
+        .message-row { display: flex; flex-direction: column; margin-bottom: 24px; width: 100%; }
+        .message-user-row { align-items: flex-end; }
+        .message-bot-row { align-items: flex-start; }
+        .message-user { background: var(--primary); color: white; padding: 12px 16px; border-radius: 8px 8px 0px 8px; max-width: 75%; font-size: 0.9rem; line-height: 1.5; animation: fadeIn 0.2s ease-out; }
+        .message-bot { background: var(--chat-bot); border: 1px solid var(--border); padding: 16px 20px; border-radius: 8px 8px 8px 0px; max-width: 85%; font-size: 0.9rem; line-height: 1.6; color: var(--primary); animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        .bot-badge { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .message-text { white-space: pre-wrap; }
+        .citation-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.8rem; }
+        .citation-block .cite-header { font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+        .cite-item { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-main); padding: 2px 8px; border-radius: 4px; margin: 2px 4px 2px 0; font-weight: 500; font-size: 0.75rem; }
+
+        .typing-indicator { font-size: 0.85rem; color: var(--text-muted); padding: 0 32px 16px; display: none; align-items: center; gap: 8px; }
+        .dots span { animation: blink 1.4s infinite; }
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%,100%{opacity:0.2;} 50%{opacity:1;} }
+
+        .input-area { padding: 20px 32px; background: var(--bg-surface); border-top: 1px solid var(--border); }
+        .input-wrapper { display: flex; gap: 12px; background: var(--bg-body); border: 1px solid var(--border); border-radius: 8px; padding: 8px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .input-wrapper:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        #user-input { flex: 1; border: none; background: transparent; padding: 8px 12px; font-size: 0.9rem; font-family: 'Inter', sans-serif; color: var(--primary); outline: none; }
+        #user-input::placeholder { color: #94a3b8; }
+        .btn-send { background: var(--accent); border: none; border-radius: 6px; padding: 8px 20px; color: white; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn-send:hover { background: var(--accent-hover); }
+
+        @media (max-width: 992px) { .sidebar { display: none; } }
+        @media (max-width: 768px) { .chat-container { border-radius: 0; height: 100vh; border: none; } .history-panel { position: absolute; z-index: 10; height: 100%; box-shadow: 4px 0 15px rgba(0,0,0,0.05); } }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+
+    <div class="history-panel" id="history-panel">
+        <div class="history-header">
+            <span>Chat History</span>
+        </div>
+        <button class="btn-new-chat" onclick="newChat()">
+            <i class="fas fa-plus"></i> New Chat
+        </button>
+        <div class="history-list" id="history-list">
+            </div>
+    </div>
+
+    <div class="right-side">
+
+        <div class="chat-area">
+            <div class="chat-header">
+                <button class="btn-toggle-history" onclick="toggleHistory()" title="Toggle sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h5>Helpora RAG Assistant</h5>
+            </div>
+
+            <div id="chat-box">
+                <div class="message-row message-bot-row">
+                    <div class="message-bot">
+                        <div class="bot-badge"><i class="fas fa-server"></i> System</div>
+                        <div class="message-text">Hello! I am your AI Assistant. Ask me anything about the provided document.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="typing-indicator" class="typing-indicator">
+                <i class="fas fa-circle-notch fa-spin"></i> Processing <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input 
+                        id="user-input" 
+                        placeholder="Message Helpora..." 
+                        onkeypress="if(event.key==='Enter') sendMessage()"
+                        autocomplete="off"
+                    >
+                    <button class="btn-send" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h4><i class="fas fa-sliders-h"></i> Configuration</h4>
+            </div>
+            
+            <div class="config-group">
+                <span class="config-label">Model Selection</span>
+                <select id="model-select">
+                    <option value="pretrain">Pre-trained</option>
+                    <option value="finetune">T5 (Fine-tuned)</option>
+                </select>
+            </div>
+
+            <div class="stats-card">
+                <h6>Messages Sent</h6>
+                <div class="value" id="message-count">0</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// STATE VARIABLES
+let currentConvId = null;
+let messageCount = 0;
+let historyVisible = true;
+
+// HISTORY PANEL TOGGLE
+function toggleHistory() {
+    historyVisible = !historyVisible;
+    const panel = document.getElementById('history-panel');
+    panel.classList.toggle('collapsed', !historyVisible);
+}
+
+// LOAD HISTORY LIST 
+async function loadHistoryList() {
+    try {
+        const res = await fetch('/history/list');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const list = document.getElementById('history-list');
+        list.innerHTML = '';
+
+        if (!data.conversations || data.conversations.length === 0) {
+            list.innerHTML = '<div style="color:var(--text-muted);font-size:0.75rem;padding:8px 12px;">No chats yet</div>';
+            return;
+        }
+
+        const label = document.createElement('div');
+        label.className = 'history-section-label';
+        label.textContent = 'Recent Chats';
+        list.appendChild(label);
+
+        data.conversations.forEach(conv => {
+            const item = document.createElement('div');
+            item.className = 'history-item' + (conv.id === currentConvId ? ' active' : '');
+            item.dataset.id = conv.id;
+            
+            const safeTitle = escapeHtml(conv.title || 'New Chat');
+            item.innerHTML = `
+                <div class="history-item-content">
+                    <i class="fas fa-message" style="font-size:0.75rem;opacity:0.7;flex-shrink:0;"></i>
+                    <span class="history-item-title">${safeTitle}</span>
+                </div>
+                <div class="history-actions">
+                    <button class="btn-action edit" onclick="renameChat(event, '${conv.id}', '${safeTitle.replace(/'/g, "\\'")}')" title="Rename">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action delete" onclick="deleteChat(event, '${conv.id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            item.addEventListener('click', () => loadConversation(conv.id));
+            list.appendChild(item);
+        });
+    } catch(e) {
+        console.error('Failed to load history', e);
+    }
+}
+
+// RENAME & DELETE CHAT FUNCTIONS
+async function renameChat(event, convId, currentTitle) {
+    event.stopPropagation(); 
+    
+    const newTitle = prompt("Enter new name for this chat:", currentTitle);
+    
+    if (newTitle !== null && newTitle.trim() !== "" && newTitle !== currentTitle) {
+        try {
+           
+            await fetch(`/history/${convId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: newTitle.trim() })
+            });
+            loadHistoryList(); 
+        } catch(e) {
+            console.error('Failed to rename chat', e);
+            alert("Failed to rename chat.");
+        }
+    }
+}
+
+async function deleteChat(event, convId) {
+    event.stopPropagation(); 
+    
+    if (confirm("Are you sure you want to delete this chat? This cannot be undone.")) {
+        try {
+            
+            await fetch(`/history/${convId}`, { method: 'DELETE' });
+            
+            if (currentConvId === convId) {
+                currentConvId = null;
+                messageCount = 0;
+                document.getElementById('message-count').textContent = messageCount;
+                clearChatBox();
+            }
+            loadHistoryList(); 
+        } catch(e) {
+            console.error('Failed to delete chat', e);
+            alert("Failed to delete chat.");
+        }
+    }
+}
+
+// LOAD CONVERSATION 
+async function loadConversation(convId) {
+    try {
+        const res = await fetch(`/history/${convId}`);
+        if (!res.ok) return;
+        const conv = await res.json();
+        
+        currentConvId = conv.id;
+        const box = document.getElementById('chat-box');
+        box.innerHTML = '';
+        
+        if (conv.messages && conv.messages.length > 0) {
+            messageCount = 0;
+            conv.messages.forEach(msg => {
+                appendMessage(msg.role, msg.content, msg.used_model || 'pretrain', msg.citations || []);
+                if (msg.role === 'user') messageCount++; 
+            });
+            document.getElementById('message-count').textContent = messageCount;
+        } else {
+            clearChatBox(); 
+        }
+        loadHistoryList(); 
+    } catch(e) {
+        console.error('Failed to load conversation', e);
+    }
+}
+
+// NEW CHAT & CLEAR CHAT BOX
+async function newChat() {
+    try {
+        const res = await fetch('/history/new', { method: 'POST' });
+        if (res.ok) {
+            const data = await res.json();
+            currentConvId = data.id; 
+        } else {
+            currentConvId = null; 
+        }
+        messageCount = 0;
+        document.getElementById('message-count').textContent = messageCount;
+        clearChatBox();
+        loadHistoryList();
+    } catch(e) {
+        console.error('Failed to create new chat', e);
+        currentConvId = null;
+        messageCount = 0;
+        document.getElementById('message-count').textContent = messageCount;
+        clearChatBox();
+    }
+}
+
+function clearChatBox() {
+    const box = document.getElementById('chat-box');
+    box.innerHTML = `
+        <div class="message-row message-bot-row">
+            <div class="message-bot">
+                <div class="bot-badge"><i class="fas fa-server"></i> System</div>
+                <div class="message-text">New chat session started. What would you like to ask about the document?</div>
+            </div>
+        </div>
+    `;
+}
+
+// SEND MESSAGE
+async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const model = document.getElementById('model-select').value;
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    appendMessage('user', message);
+    input.value = ''; 
+
+    messageCount++;
+    document.getElementById('message-count').textContent = messageCount;
+    typingIndicator.style.display = 'flex';
+
+    try {
+        const res = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: message,
+                model_type: model,
+                conv_id: currentConvId
+            })
+        });
+
+        const data = await res.json();
+        if (data.conv_id) currentConvId = data.conv_id;
+
+        if (data.response) {
+            appendMessage('bot', data.response, data.used_model || model, data.citations || []);
+        } else {
+            appendMessage('bot', '⚠️ No response from server.', model, []);
+        }
+    } catch(e) {
+        console.error('Error:', e);
+        appendMessage('bot', '❌ Error: Could not connect to the backend server.', model, []);
+    } finally {
+        typingIndicator.style.display = 'none';
+        loadHistoryList();
+    }
+}
+
+// APPEND MESSAGE TO UI
+function appendMessage(sender, text, model = 'pretrain', citations = []) {
+    const box = document.getElementById('chat-box');
+    const rowDiv = document.createElement('div');
+    const msgDiv = document.createElement('div');
+
+    if (sender === 'user') {
+        rowDiv.className = 'message-row message-user-row';
+        msgDiv.className = 'message-user';
+        msgDiv.textContent = text; 
+        rowDiv.appendChild(msgDiv);
+    } else {
+        rowDiv.className = 'message-row message-bot-row';
+        msgDiv.className = 'message-bot';
+
+        const isRuleBased = model === 'rule-based';
+        const isFine = model === 'finetune';
+        const badgeLabel = isRuleBased ? 'Rule-based Logic' : (isFine ? 'T5 Fine-tuned' : 'Gemini Pre-trained');
+        const badgeIcon = isRuleBased ? 'fa-list-check' : (isFine ? 'fa-microchip' : 'fa-sparkles');
+
+        let citationHTML = '';
+        if (citations && citations.length > 0) {
+            const items = citations.map(c => {
+                const page = c.page ? `, pg ${c.page}` : '';
+                return `<span class="cite-item"><i class="fas fa-file-alt"></i> ${escapeHtml(c.source)}${page}</span>`;
+            }).join('');
+            citationHTML = `
+                <div class="citation-block">
+                    <div class="cite-header">Sources</div>
+                    ${items}
+                </div>
+            `;
+        }
+
+        msgDiv.innerHTML = `
+            <div class="bot-badge"><i class="fas ${badgeIcon}"></i> ${badgeLabel}</div>
+            <div class="message-text">${escapeHtml(text)}</div>
+            ${citationHTML}
+        `;
+        rowDiv.appendChild(msgDiv);
+    }
+
+    box.appendChild(rowDiv);
+    box.scrollTop = box.scrollHeight; 
+}
+
+// UTILITIES & INITIALIZATION
+function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+window.onload = () => {
+    loadHistoryList();
+    document.getElementById('user-input').focus();
+};
+</script>
+
+</body>
+</html>

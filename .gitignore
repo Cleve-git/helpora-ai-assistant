@@ -1,0 +1,16 @@
+# Environments
+venv/
+.env
+
+# Cache & Temp Files
+__pycache__/
+results_temp/
+
+# User Data & Generated DB
+chat_history/
+index.faiss
+index.pkl
+
+# AI Models & Heavy Data
+t5_finetuned_os/
+data/
